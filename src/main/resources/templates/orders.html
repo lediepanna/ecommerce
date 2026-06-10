@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Mina ordrar</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Dina beställningar</h1>
+    <div th:if="${orders.empty}">Inga ordrar ännu.</div>
+    <div th:each="order : ${orders}">
+        <hr>
+        <p><strong>Order #[[${order.id}]]</strong> - [[${order.orderDate}]] - [[${order.status}]] - Totalt: [[${order.totalAmount}]] SEK</p>
+        <ul>
+            <li th:each="item : ${order.items}">
+                [[${item.productName}]] x [[${item.quantity}]] = [[${item.price * item.quantity}]] SEK
+            </li>
+        </ul>
+    </div>
+    <p><a th:href="@{/products}">Tillbaka till produkter</a></p>
+</div>
+</body>
+</html>

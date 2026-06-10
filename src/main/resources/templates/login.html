@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Logga in</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h2>Logga in</h2>
+    <div th:if="${param.error}">Fel användarnamn eller lösenord</div>
+    <div th:if="${param.logout}">Du har loggats ut</div>
+    <div th:if="${param.registered}">Registrering lyckades! Logga in.</div>
+    <form method="post" th:action="@{/login}">
+        <input type="text" name="username" placeholder="Användarnamn" required><br>
+        <input type="password" name="password" placeholder="Lösenord" required><br>
+        <button type="submit">Logga in</button>
+    </form>
+    <p>Inget konto? <a th:href="@{/register}">Registrera dig</a></p>
+</div>
+</body>
+</html>

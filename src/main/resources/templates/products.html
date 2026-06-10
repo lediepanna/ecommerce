@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Produkter</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Våra produkter</h1>
+    <div sec:authorize="isAuthenticated()">
+        Hej <span sec:authentication="name"></span> |
+        <a th:href="@{/cart}">Varukorg</a> |
+        <a th:href="@{/orders}">Mina ordrar</a> |
+        <form th:action="@{/logout}" method="post" style="display:inline">
+            <button type="submit">Logga ut</button>
+        </form>
+    </div>
+    <div class="products">
+        <div th:each="p : ${products}" class="product-card">
+            <img th:src="${p.image}" alt="Bild" width="100">
+            <h3 th:text="${p.title}">Titel</h3>
+            <p th:text="${'Pris: ' + p.price + ' SEK'}"></p>
+            <form method="post" th:action="@{/cart/add/{id}(id=${p.id})}">
+                <input type="number" name="quantity" value="1" min="1" style="width:50px">
+                <button type="submit">Lägg i varukorg</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

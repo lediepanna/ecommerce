@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Produktdetalj</title></head>
+<body>
+<h1 th:text="${product.title}"></h1>
+<img th:src="${product.image}" width="200"/>
+<p th:text="${product.description}"></p>
+<p><strong>Pris: <span th:text="${product.price}"></span> kr</strong></p>
+<form method="post" th:action="'/order?productId=' + ${product.id}">
+    <label>Antal: <input type="number" name="quantity" value="1" min="1"/></label>
+    <button type="submit">Beställ</button>
+</form>
+<a href="/products">Tillbaka</a>
+</body>
+</html>
