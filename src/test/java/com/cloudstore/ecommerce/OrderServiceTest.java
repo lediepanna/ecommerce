@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +37,7 @@ public class OrderServiceTest {
         User user = new User();
         user.setId(1L);
 
+        // Create a real Cart object with items
         Cart cart = new Cart();
         CartItem item = new CartItem(1L, "Test Product", 99.99, 2);
         Map<Long, CartItem> items = new LinkedHashMap<>();
@@ -58,7 +60,7 @@ public class OrderServiceTest {
     void testCreateOrderEmptyCart() {
         User user = new User();
         Cart emptyCart = new Cart();
-        emptyCart.setItems(new LinkedHashMap<>());
+        emptyCart.setItems(new LinkedHashMap<>()); // empty cart
         when(cartService.getCart()).thenReturn(emptyCart);
 
         assertThrows(IllegalStateException.class, () -> orderService.createOrder(user));
