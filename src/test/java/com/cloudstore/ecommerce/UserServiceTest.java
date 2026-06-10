@@ -1,36 +1,74 @@
 package com.cloudstore.ecommerce;
 
 import com.cloudstore.ecommerce.dto.RegisterRequest;
+import com.cloudstore.ecommerce.model.User;
 import com.cloudstore.ecommerce.repository.UserRepository;
 import com.cloudstore.ecommerce.service.UserService;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-    @MockBean
+
+    @Mock
     private UserRepository userRepository;
-    @MockBean
+
+    @Mock
     private PasswordEncoder passwordEncoder;
-    @Autowired
+
+    @InjectMocks
     private UserService userService;
 
     @Test
     void testRegisterUserSuccess() {
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        RegisterRequest req = new RegisterRequest();
-        req.setUsername("testuser");
-        req.setPassword("pass");
-        req.setEmail("test@example.com");
-        assertTrue(userService.registerUser(req));
-        verify(userRepository, times(1)).save(any());
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("newuser");
+        request.setEmail("new@example.com");
+        request.setPassword("password");
+
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+
+        boolean result = userService.registerUser(request);
+        assertTrue(result);
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void testRegisterUserDuplicate() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("existing");
+        when(userRepository.existsByUsername("existing")).thenReturn(true);
+
+        boolean result = userService.registerUser(request);
+        assertFalse(result);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void testFindByUsernameFound() {
+        User user = new User();
+        user.setUsername("found");
+        when(userRepository.findByUsername("found")).thenReturn(Optional.of(user));
+
+        User found = userService.findByUsername("found");
+        assertNotNull(found);
+        assertEquals("found", found.getUsername());
+    }
+
+    @Test
+    void testFindByUsernameNotFound() {
+        when(userRepository.findByUsername("missing")).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> userService.findByUsername("missing"));
     }
 }
