@@ -1,51 +1,78 @@
 package com.cloudstore.ecommerce.controller;
 
+import com.cloudstore.ecommerce.client.FakeStoreClient;
+import com.cloudstore.ecommerce.dto.ProductDTO;
 import com.cloudstore.ecommerce.model.Order;
 import com.cloudstore.ecommerce.model.User;
-import com.cloudstore.ecommerce.repository.OrderRepository;
 import com.cloudstore.ecommerce.service.OrderService;
 import com.cloudstore.ecommerce.service.UserService;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
 
 @Controller
 public class OrderController {
 
     private final OrderService orderService;
-    private final OrderRepository orderRepository;
     private final UserService userService;
+    private final FakeStoreClient fakeStoreClient;
 
-    public OrderController(OrderService orderService,
-                           OrderRepository orderRepository,
-                           UserService userService) {
+    public OrderController(OrderService orderService, UserService userService, FakeStoreClient fakeStoreClient) {
         this.orderService = orderService;
-        this.orderRepository = orderRepository;
         this.userService = userService;
-    }
-
-    @GetMapping("/checkout")
-    public String checkoutForm() {
-        // Visa kassasidan (redirect till varukorg eller en bekräftelse)
-        // Här kan du returnera "cart" om du vill, eller en separat checkout-sida.
-        // Vi låter den vara kvar på cart-sidan tills vidare.
-        return "cart";
-    }
-
-    @PostMapping("/checkout")
-    public String placeOrder(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userService.findByUsername(userDetails.getUsername());
-        orderService.createOrder(user);
-        return "redirect:/orders";
+        this.fakeStoreClient = fakeStoreClient;
     }
 
     @GetMapping("/orders")
-    public String listOrders(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-        User user = userService.findByUsername(userDetails.getUsername());
-        model.addAttribute("orders", orderRepository.findByUserOrderByOrderDateDesc(user));
+    public String showOrders(Model model, Authentication authentication) {
+        String username = authentication.getName();
+        User user = userService.findByUsername(username);
+        List<Order> orders = orderService.getOrdersForUser(user);
+        model.addAttribute("orders", orders);
         return "orders";
+    }
+
+    @PostMapping("/order/create")
+    public String createOrder(@RequestParam Long productId,
+                              @RequestParam(defaultValue = "1") Integer quantity,
+                              Authentication authentication,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            String username = authentication.getName();
+            User user = userService.findByUsername(username);
+
+            ProductDTO product = fakeStoreClient.getProductById(productId);
+            if (product == null) {
+                throw new RuntimeException("Produkten hittades inte");
+            }
+
+            Order order = orderService.createDirectOrder(user, productId, product.getTitle(), product.getPrice(), quantity);
+            redirectAttributes.addFlashAttribute("message", "✅ Order #" + order.getId() + " skapad! Betala nu.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "❌ Fel: " + e.getMessage());
+        }
+        return "redirect:/orders";
+    }
+
+    @PostMapping("/order/pay/{id}")
+    public String payOrder(@PathVariable Long id,
+                           Authentication authentication,
+                           RedirectAttributes redirectAttributes) {
+        try {
+            String username = authentication.getName();
+            User user = userService.findByUsername(username);
+            Order paidOrder = orderService.payOrder(id, user);
+            redirectAttributes.addFlashAttribute("message", "🎉 Order #" + paidOrder.getId() + " betald! Tack!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "❌ Betalning misslyckades: " + e.getMessage());
+        }
+        return "redirect:/orders";
     }
 }

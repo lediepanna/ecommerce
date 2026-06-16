@@ -1,28 +1,42 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Produkter</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anna's Shop - Produkter</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 <div class="container">
-    <h1>Våra produkter</h1>
-    <div sec:authorize="isAuthenticated()">
-        Hej <span sec:authentication="name"></span> |
-        <a th:href="@{/cart}">Varukorg</a> |
-        <a th:href="@{/orders}">Mina ordrar</a> |
+    <!-- HEADER: Anna's Shop -->
+    <header class="shop-header">
+        <h1>🌸 Anna's Shop</h1>
+        <p class="slogan">Handla enkelt – betala tryggt</p>
+    </header>
+
+    <!-- Inloggad användares meny -->
+    <div sec:authorize="isAuthenticated()" class="user-menu">
+        <span>👋 Hej <strong sec:authentication="name"></strong>!</span>
+        <a th:href="@{/orders}">📦 Mina ordrar</a>
         <form th:action="@{/logout}" method="post" style="display:inline">
-            <button type="submit">Logga ut</button>
+            <button type="submit" class="logout-btn">🚪 Logga ut</button>
         </form>
     </div>
-    <div class="products">
+
+    <!-- Produktgalleri -->
+    <h2 class="section-title">✨ Våra produkter</h2>
+    <div class="products-grid">
         <div th:each="p : ${products}" class="product-card">
-            <img th:src="${p.image}" alt="Bild" width="100">
-            <h3 th:text="${p.title}">Titel</h3>
-            <p th:text="${'Pris: ' + p.price + ' SEK'}"></p>
-            <form method="post" th:action="@{/cart/add/{id}(id=${p.id})}">
-                <input type="number" name="quantity" value="1" min="1" style="width:50px">
-                <button type="submit">Lägg i varukorg</button>
+            <img th:src="${p.image}" alt="Produktbild" class="product-image">
+            <h3 th:text="${p.title}">Produkttitel</h3>
+            <p class="price" th:text="${'Pris: ' + p.price + ' SEK'}">Pris</p>
+            <p class="category" th:text="${'📂 ' + p.category}">Kategori</p>
+
+            <!-- DIREKTKÖP (utan varukorg) -->
+            <form method="post" th:action="@{/order/create}" class="buy-form">
+                <input type="hidden" name="productId" th:value="${p.id}" />
+                <input type="number" name="quantity" value="1" min="1" max="10" class="qty-input" />
+                <button type="submit" class="buy-btn">🛒 Köp nu</button>
             </form>
         </div>
     </div>

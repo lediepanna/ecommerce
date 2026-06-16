@@ -1,68 +1,78 @@
-package com.cloudstore.ecommerce;
+// ProductServiceTest.java
+package com.cloudstore.ecommerce.service;
 
+import com.cloudstore.ecommerce.client.FakeStoreClient;
 import com.cloudstore.ecommerce.dto.ProductDTO;
-import com.cloudstore.ecommerce.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ProductServiceTest {
+class ProductServiceTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private FakeStoreClient fakeStoreClient;
 
     @InjectMocks
     private ProductService productService;
 
-    private final String apiUrl = "https://fakestoreapi.com/products";
+    private ProductDTO product1;
+    private ProductDTO product2;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(productService, "apiUrl", apiUrl);
+        product1 = new ProductDTO();
+        product1.setId(1L);
+        product1.setTitle("Test Product 1");
+        product1.setPrice(99.99);
+
+        product2 = new ProductDTO();
+        product2.setId(2L);
+        product2.setTitle("Test Product 2");
+        product2.setPrice(49.99);
     }
 
     @Test
-    void testGetAllProducts() {
-        ProductDTO p1 = new ProductDTO();
-        p1.setId(1L);
-        p1.setTitle("Test Product");
-        List<ProductDTO> mockProducts = List.of(p1);
-        ResponseEntity<List<ProductDTO>> responseEntity = new ResponseEntity<>(mockProducts, HttpStatus.OK);
-
-        when(restTemplate.exchange(eq(apiUrl), eq(HttpMethod.GET), isNull(),
-                any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
+    void getAllProducts_shouldReturnProductList() {
+        List<ProductDTO> mockList = Arrays.asList(product1, product2);
+        when(fakeStoreClient.getAllProducts()).thenReturn(mockList);
 
         List<ProductDTO> products = productService.getAllProducts();
+
         assertNotNull(products);
-        assertEquals(1, products.size());
-        assertEquals("Test Product", products.get(0).getTitle());
+        assertEquals(2, products.size());
+        assertEquals("Test Product 1", products.get(0).getTitle());
+        verify(fakeStoreClient, times(1)).getAllProducts();
     }
 
     @Test
-    void testGetProductById() {
-        ProductDTO mockProduct = new ProductDTO();
-        mockProduct.setId(5L);
-        mockProduct.setTitle("Product 5");
-        when(restTemplate.getForObject(apiUrl + "/5", ProductDTO.class)).thenReturn(mockProduct);
+    void getProductById_shouldReturnProduct() {
+        when(fakeStoreClient.getProductById(1L)).thenReturn(product1);
 
-        ProductDTO product = productService.getProductById(5L);
+        ProductDTO product = productService.getProductById(1L);
+
         assertNotNull(product);
-        assertEquals(5L, product.getId());
+        assertEquals(1L, product.getId());
+        assertEquals("Test Product 1", product.getTitle());
+        verify(fakeStoreClient, times(1)).getProductById(1L);
+    }
+
+    @Test
+    void getProductById_notFound_shouldReturnNull() {
+        when(fakeStoreClient.getProductById(99L)).thenReturn(null);
+
+        ProductDTO product = productService.getProductById(99L);
+
+        assertNull(product);
+        verify(fakeStoreClient, times(1)).getProductById(99L);
     }
 }

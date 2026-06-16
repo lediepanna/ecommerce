@@ -6,6 +6,8 @@ import com.cloudstore.ecommerce.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class UserService {
 
@@ -17,22 +19,30 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public boolean registerUser(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return false;
+    public User registerUser(RegisterRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Användarnamnet är redan upptaget.");
         }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("ROLE_USER");
-        userRepository.save(user);
-        return true;
+        user.setRole("USER");
+
+        return userRepository.save(user);
     }
 
-    // Hitta användare via användarnamn (används av OrderController och andra)
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new RuntimeException("Användare med namn '" + username + "' hittades inte."));
+    }
+
+    public Optional<User> findUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    public boolean existsByUsername(String username) {
+        return userRepository.findByUsername(username).isPresent();
     }
 }

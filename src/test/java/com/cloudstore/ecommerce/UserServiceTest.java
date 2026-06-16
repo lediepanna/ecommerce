@@ -1,9 +1,10 @@
-package com.cloudstore.ecommerce;
+// UserServiceTest.java (uppdaterad)
+package com.cloudstore.ecommerce.service;
 
 import com.cloudstore.ecommerce.dto.RegisterRequest;
 import com.cloudstore.ecommerce.model.User;
 import com.cloudstore.ecommerce.repository.UserRepository;
-import com.cloudstore.ecommerce.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,11 +15,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceTest {
+class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -29,46 +30,84 @@ public class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
-    @Test
-    void testRegisterUserSuccess() {
-        RegisterRequest request = new RegisterRequest();
-        request.setUsername("newuser");
-        request.setEmail("new@example.com");
-        request.setPassword("password");
+    private RegisterRequest registerRequest;
+    private User user;
 
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+    @BeforeEach
+    void setUp() {
+        registerRequest = new RegisterRequest();
+        registerRequest.setUsername("testuser");
+        registerRequest.setEmail("test@example.com");
+        registerRequest.setPassword("password123");
 
-        boolean result = userService.registerUser(request);
-        assertTrue(result);
-        verify(userRepository).save(any(User.class));
+        user = new User();
+        user.setId(1L);
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setRole("USER");
     }
 
     @Test
-    void testRegisterUserDuplicate() {
-        RegisterRequest request = new RegisterRequest();
-        request.setUsername("existing");
-        when(userRepository.existsByUsername("existing")).thenReturn(true);
+    void registerUser_shouldSaveUser() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
 
-        boolean result = userService.registerUser(request);
-        assertFalse(result);
-        verify(userRepository, never()).save(any());
+        User savedUser = userService.registerUser(registerRequest);
+
+        assertNotNull(savedUser);
+        assertEquals("testuser", savedUser.getUsername());
+        verify(userRepository, times(1)).save(any(User.class));
     }
 
     @Test
-    void testFindByUsernameFound() {
-        User user = new User();
-        user.setUsername("found");
-        when(userRepository.findByUsername("found")).thenReturn(Optional.of(user));
+    void registerUser_usernameAlreadyExists_shouldThrowException() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
 
-        User found = userService.findByUsername("found");
-        assertNotNull(found);
-        assertEquals("found", found.getUsername());
+        assertThrows(RuntimeException.class, () -> userService.registerUser(registerRequest));
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void testFindByUsernameNotFound() {
-        when(userRepository.findByUsername("missing")).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> userService.findByUsername("missing"));
+    void findByUsername_userExists_shouldReturnUser() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        User foundUser = userService.findByUsername("testuser");
+
+        assertNotNull(foundUser);
+        assertEquals("testuser", foundUser.getUsername());
+    }
+
+    @Test
+    void findByUsername_userNotFound_shouldThrowException() {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> userService.findByUsername("unknown"));
+    }
+
+    @Test
+    void existsByUsername_shouldReturnTrueIfExists() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        boolean exists = userService.existsByUsername("testuser");
+        assertTrue(exists);
+    }
+
+    @Test
+    void existsByUsername_shouldReturnFalseIfNotExists() {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        boolean exists = userService.existsByUsername("unknown");
+        assertFalse(exists);
+    }
+
+    @Test
+    void findUserByUsername_shouldReturnOptional() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        Optional<User> optionalUser = userService.findUserByUsername("testuser");
+        assertTrue(optionalUser.isPresent());
+        assertEquals("testuser", optionalUser.get().getUsername());
     }
 }

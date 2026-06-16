@@ -1,23 +1,63 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Mina ordrar</title>
+    <meta charset="UTF-8">
+    <title>Anna's Shop - Mina ordrar</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 <div class="container">
-    <h1>Dina beställningar</h1>
-    <div th:if="${orders.empty}">Inga ordrar ännu.</div>
-    <div th:each="order : ${orders}">
-        <hr>
-        <p><strong>Order #[[${order.id}]]</strong> - [[${order.orderDate}]] - [[${order.status}]] - Totalt: [[${order.totalAmount}]] SEK</p>
-        <ul>
-            <li th:each="item : ${order.items}">
-                [[${item.productName}]] x [[${item.quantity}]] = [[${item.price * item.quantity}]] SEK
-            </li>
-        </ul>
+    <header class="shop-header">
+        <h1>🌸 Anna's Shop</h1>
+        <p class="slogan">Dina beställningar</p>
+    </header>
+
+    <div class="user-menu">
+        <span>👋 Hej <strong sec:authentication="name"></strong>!</span>
+        <a th:href="@{/products}">🛍️ Fortsätt handla</a>
+        <form th:action="@{/logout}" method="post" style="display:inline">
+            <button type="submit" class="logout-btn">🚪 Logga ut</button>
+        </form>
     </div>
-    <p><a th:href="@{/products}">Tillbaka till produkter</a></p>
+
+    <!-- Flash-meddelanden -->
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <h2 class="section-title">📋 Mina beställningar</h2>
+
+    <div th:if="${orders.empty}" class="empty-state">
+        <p>Du har inga beställningar ännu.</p>
+        <a th:href="@{/products}" class="btn-primary">🛍️ Börja handla</a>
+    </div>
+
+    <div th:unless="${orders.empty}" class="orders-list">
+        <div th:each="order : ${orders}" class="order-card">
+            <div class="order-header">
+                <span class="order-id">#<span th:text="${order.id}"></span></span>
+                <span class="order-date" th:text="${#temporals.format(order.orderDate, 'yyyy-MM-dd HH:mm')}"></span>
+                <span class="order-status" th:classappend="${order.status == 'PAID' ? 'status-paid' : 'status-pending'}">
+                    <span th:text="${order.status == 'PAID' ? '✅ Betald' : '⏳ Väntar på betalning'}"></span>
+                </span>
+            </div>
+            <div class="order-body">
+                <ul>
+                    <li th:each="item : ${order.items}">
+                        <span th:text="${item.productName}"></span> -
+                        <span th:text="${item.quantity}"></span> st -
+                        <span th:text="${item.price} + ' SEK'"></span>
+                    </li>
+                </ul>
+                <div class="order-footer">
+                    <strong>Totalt: <span th:text="${order.totalAmount} + ' SEK'"></span></strong>
+                    <form th:if="${order.status != 'PAID'}" method="post" th:action="@{/order/pay/{id}(id=${order.id})}">
+                        <button type="submit" class="pay-btn">💳 Betala nu</button>
+                    </form>
+                    <span th:if="${order.status == 'PAID'}" class="paid-badge">✅ Betalning genomförd</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>
